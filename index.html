@@ -45,7 +45,7 @@ button,select,input{font:inherit}button{background:none;border:0;color:inherit;c
  <div id="done" class="hidden bg-indigo-900 text-white rounded-xl p-6 text-center space-y-3"><h2 class="text-xl font-bold">終了</h2><p id="score" class="text-3xl font-black"></p><button onclick="reset()" class="bg-amber-400 text-slate-900 font-bold rounded-lg px-5 py-2">設定に戻る</button></div>
 </section>
 <section id="log" class="hidden space-y-4">
- <div class="bg-white rounded-xl border p-4 space-y-2"><div class="flex justify-between"><b>学習実績</b><span class="text-xs space-x-2"><button onclick="exp()" class="text-indigo-700">JSON保存</button><button onclick="csv()" class="text-indigo-700">CSV保存</button><button onclick="clr()" class="text-rose-600">初期化</button></span></div><p id="sum" class="text-sm"></p><div id="cats" class="space-y-2 text-xs"></div></div>
+ <div class="bg-white rounded-xl border p-4 space-y-2"><div class="flex justify-between"><b>学習実績</b><span class="text-xs space-x-2"><button onclick="exp()" class="text-indigo-700">JSON保存</button><button onclick="csv()" class="text-indigo-700">CSV保存</button><button onclick="clr()" class="text-rose-600">初期化</button></span></div><p id="sum" class="text-sm"></p><div class="text-xs space-y-1 border-t pt-2"><p id="syn"></p><input id="url" class="w-full border rounded p-2" placeholder="GASの /exec URL を貼る"><div class="space-x-2"><button onclick="setUrl()" class="text-indigo-700">URLを保存</button><button onclick="syncNow()" class="text-indigo-700">今すぐ送信</button></div></div><div id="cats" class="space-y-2 text-xs"></div></div>
 </section><section id="ana" class="hidden space-y-4">
  <div class="bg-white rounded-xl border p-4 space-y-2"><b>論点別の分析・優先度</b><p class="text-xs text-slate-500">優先度＝誤答率×3年間の出題数。正答率は3回以上解いた論点のみ判定します。</p><div id="anaTbl" class="overflow-x-auto"></div></div>
  <div class="bg-white rounded-xl border p-4 space-y-2"><b>要復習(直近の解答が不正解)</b><div id="anaWrong" class="text-xs space-y-1"></div></div>
@@ -59,7 +59,8 @@ const $=i=>document.getElementById(i), N='①②③④';
 let Q=[],i=0,ok=0;
 let LOGS=[];try{LOGS=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
 const logs=()=>LOGS, T=Object.fromEntries(DB.map(q=>[q.id,q]));
-const SYNC_URL='https://script.google.com/macros/s/AKfycbzoQq0qAPxyeCAJBhl0j6kHDJB_vutr3uyNIDOWP_w8KWT_CtZlP3U0a3O010OuUg-K/exec';/* ←GASウェブアプリの /exec URL を貼る(空なら端末内のみ保存) */
+const DEFAULT_URL='';/* 任意:ここに /exec URL を直書きしてもよい */
+let SYNC_URL=localStorage.getItem(KEY+'_url')||DEFAULT_URL;
 let PEND=[];try{PEND=JSON.parse(localStorage.getItem(KEY+'_pend'))||[]}catch(e){}
 const savePend=()=>{try{localStorage.setItem(KEY+'_pend',JSON.stringify(PEND))}catch(e){}};
 async function flush(){if(!SYNC_URL||!PEND.length||!navigator.onLine)return;const b=PEND.slice();try{await fetch(SYNC_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});PEND=PEND.slice(b.length);savePend()}catch(e){}}
@@ -98,7 +99,10 @@ function pick(p){
 }
 function next(){i++;if(i<Q.length)load();else{$('qs').classList.add('hidden');$('done').classList.remove('hidden');$('score').textContent=`${ok} / ${Q.length}（${Math.round(ok/Q.length*100)}%）`}}
 function reset(){$('done').classList.add('hidden');$('setup').classList.remove('hidden')}
+function setUrl(){SYNC_URL=$('url').value.trim();try{localStorage.setItem(KEY+'_url',SYNC_URL)}catch(e){}renderLog()}
+async function syncNow(){if(!SYNC_URL){alert('URLが未設定です');return}if(!navigator.onLine){alert('オフラインです');return}await flush();await pull();renderLog();alert('送信しました。スプレッドシートを確認してください(送信待ち:'+PEND.length+'件)')}
 function renderLog(){
+ $('syn').textContent=(SYNC_URL?'同期URL:設定済み':'同期URL:未設定(スプレッドシートには送られません)')+'｜送信待ち '+PEND.length+'件';$('url').value=SYNC_URL;
  const l=logs(),c=l.filter(x=>x.ok).length,u=new Set(l.filter(x=>x.ok).map(x=>x.id)).size;
  $('sum').textContent=`解答 ${l.length}件 / 正解 ${c}件（${l.length?Math.round(c/l.length*100):0}%）｜一度でも正解した問題 ${u} / ${DB.length}`;
  $('cats').innerHTML='';cats.forEach(k=>{const a=l.filter(x=>x.cat==k),b=a.filter(x=>x.ok).length,p=a.length?Math.round(b/a.length*100):0;
