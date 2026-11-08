@@ -31,7 +31,7 @@ button,select,input{font:inherit}button{background:none;border:0;color:inherit;c
    <label>分野<select id="fc" class="w-full border rounded p-2"><option value="">全分野</option></select></label>
    <label>問題数<select id="fn" class="w-full border rounded p-2"><option>10</option><option>20</option><option>50</option><option value="0">全て</option></select></label>
   </div>
-  <div class="text-sm space-x-4"><label><input type="checkbox" id="sh" checked> シャッフル</label><label><input type="checkbox" id="wr"> 直近で間違えた問題のみ</label></div>
+  <div class="text-sm space-x-4"><label><input type="checkbox" id="sh" checked> シャッフル</label><label><input type="checkbox" id="lc" checked> 解答回数が少ない問題を優先</label><label><input type="checkbox" id="wr"> 直近で間違えた問題のみ</label></div>
   <button onclick="start()" class="bg-indigo-600 text-white font-bold rounded-lg px-6 py-2">開始</button>
   <p class="text-xs text-slate-500">正答は日本貸金業協会公表の公式正答です。解説は含まれていません。</p>
  </div>
@@ -77,6 +77,7 @@ function start(){
  Q=DB.filter(q=>(!$('fy').value||q.year==$('fy').value)&&(!$('fc').value||q.category==$('fc').value)&&(!$('wr').checked||wrong.has(q.id)));
  if(!Q.length){alert('該当する問題がありません');return}
  if($('sh').checked)Q.sort(()=>Math.random()-.5);
+ if($('lc').checked){const c={};LOGS.forEach(l=>c[l.id]=(c[l.id]||0)+1);Q.sort((a,b)=>(c[a.id]||0)-(c[b.id]||0))}
  const n=+$('fn').value;if(n)Q=Q.slice(0,n);
  i=0;ok=0;$('setup').classList.add('hidden');$('done').classList.add('hidden');$('qs').classList.remove('hidden');load();
 }
